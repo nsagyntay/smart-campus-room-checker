@@ -1,15 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { checkAvailability } from './availability';
 import { sampleRooms } from './sampleData';
-import { Room } from './types';
-
-// Helper: clone a room so test mutations never affect shared sample data
-function cloneRoom(room: Room): Room {
-  return {
-    ...room,
-    bookings: room.bookings.map((b) => ({ ...b })),
-  };
-}
+import { cloneRoom } from './testUtils';
 
 const roomA101 = sampleRooms.find((r) => r.id === 'A101')!;
 const roomB220 = sampleRooms.find((r) => r.id === 'B220')!;

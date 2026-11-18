@@ -1,14 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { checkAvailability } from './availability';
 import { sampleRooms } from './sampleData';
+import { cloneRoom } from './testUtils';
 import { Room } from './types';
-
-function cloneRoom(room: Room): Room {
-  return {
-    ...room,
-    bookings: room.bookings.map((b) => ({ ...b })),
-  };
-}
 
 const roomA101 = sampleRooms.find((r) => r.id === 'A101')!;
 const roomB220 = sampleRooms.find((r) => r.id === 'B220')!;
