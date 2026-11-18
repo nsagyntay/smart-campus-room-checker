@@ -2,11 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { checkAvailability } from './availability';
 import { sampleRooms } from './sampleData';
 import { cloneRoom } from './testUtils';
-import { Room } from './types';
+import { Room, Booking } from './types';
 
 const roomA101 = sampleRooms.find((r) => r.id === 'A101')!;
 const roomB220 = sampleRooms.find((r) => r.id === 'B220')!;
 const roomC305 = sampleRooms.find((r) => r.id === 'C305')!;
+
+const initialSampleRooms: Room[] = sampleRooms.map((r) => ({
+  ...r,
+  equipment: [...r.equipment],
+  bookings: r.bookings.map((b) => ({ ...b })),
+}));
 
 describe('checkAvailability — Extra boundary and blocked-room tests (F3, B-series)', () => {
   // ── F3: Blocked rooms must never be reported as available ──
@@ -102,5 +108,32 @@ describe('checkAvailability — Extra boundary and blocked-room tests (F3, B-ser
     if (!result.available) {
       expect(result.reason).toBe('overlap');
     }
+  });
+
+  // ── Fixture integrity: shared sampleRooms must remain unchanged after tests run ──
+
+  it('FIXTURE-UNCHANGED: sampleRooms fixtures are not mutated by checkAvailability', () => {
+    // Exercise every room including a blocked room and overlap cases.
+    sampleRooms.forEach((room) => {
+      checkAvailability(cloneRoom(room), 700, 760, 500);
+    });
+    expect(sampleRooms.length).toBe(initialSampleRooms.length);
+    sampleRooms.forEach((room, i) => {
+      const snap = initialSampleRooms[i];
+      expect(room.id).toBe(snap.id);
+      expect(room.name).toBe(snap.name);
+      expect(room.building).toBe(snap.building);
+      expect(room.capacity).toBe(snap.capacity);
+      expect(room.blocked).toBe(snap.blocked);
+      expect(room.blockedReason).toBe(snap.blockedReason);
+      expect(room.equipment).toEqual(snap.equipment);
+      expect(room.bookings.length).toBe(snap.bookings.length);
+      room.bookings.forEach((b: Booking, j: number) => {
+        expect(b.id).toBe(snap.bookings[j].id);
+        expect(b.title).toBe(snap.bookings[j].title);
+        expect(b.start).toBe(snap.bookings[j].start);
+        expect(b.end).toBe(snap.bookings[j].end);
+      });
+    });
   });
 });
