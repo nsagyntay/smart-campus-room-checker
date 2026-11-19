@@ -110,6 +110,49 @@ describe('checkAvailability — Extra boundary and blocked-room tests (F3, B-ser
     }
   });
 
+  // ── C3 regression: empty input fields produce Number("") = 0, not NaN ──
+  // handleCheck in App.tsx calls Number(startStr) directly. When a field is
+  // empty, Number("") returns 0, which checkAvailability treats as a valid
+  // midnight value rather than detecting the missing input. This test documents
+  // the current behavior so any future fix can be verified against it.
+
+  it('C3-EMPTY-START-END: Number("") = 0 for start and end yields invalid-order, not invalid-input', () => {
+    const room = cloneRoom(roomA101);
+    // Simulates handleCheck with empty start and end fields: Number("") = 0
+    const result = checkAvailability(room, Number(''), Number(''), 500);
+    expect(result.available).toBe(false);
+    if (!result.available) {
+      // start=0, end=0 → start >= end → 'invalid-order', NOT 'invalid-input'
+      // because 0 is not NaN. This documents the C3 gap.
+      expect(result.reason).toBe('invalid-order');
+    }
+  });
+
+  it('C3-EMPTY-CURRENT: Number("") = 0 for current time can produce a false available result', () => {
+    const room = cloneRoom(roomA101);
+    // Simulates handleCheck with empty current field but valid start/end.
+    // Number("") = 0 for current, so start=700 > current=0 passes the
+    // past-time check. A101 has a gap 600–780, so 700–760 has no overlap.
+    // The room is reported available — but the user left current time empty.
+    const result = checkAvailability(room, 700, 760, Number(''));
+    expect(result.available).toBe(true);
+    // This test documents the false-available scenario: the user did not
+    // enter a current time, yet the result says "available" because
+    // Number("") = 0 was treated as a valid midnight current time.
+  });
+
+  it('C3-NAN-CURRENT: passing NaN for current time correctly yields invalid-input', () => {
+    const room = cloneRoom(roomA101);
+    // If empty fields were converted to NaN instead of Number(""), the
+    // guard at availability.ts line 13 would catch it. This test confirms
+    // the existing NaN guard works — the gap is that handleCheck sends 0, not NaN.
+    const result = checkAvailability(room, 700, 760, NaN);
+    expect(result.available).toBe(false);
+    if (!result.available) {
+      expect(result.reason).toBe('invalid-input');
+    }
+  });
+
   // ── Fixture integrity: shared sampleRooms must remain unchanged after tests run ──
 
   it('FIXTURE-UNCHANGED: sampleRooms fixtures are not mutated by checkAvailability', () => {
